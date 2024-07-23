@@ -7,6 +7,7 @@ from nltk.corpus import stopwords
 from nltk.stem import RSLPStemmer
 from nltk import word_tokenize
 
+
 class TextPreprocessing:
     """class responsible for TextPreprocessing methods."""
 
@@ -25,7 +26,7 @@ class TextPreprocessing:
         remove_short_tokens: bool = False,
         min_tokens_size: int = 2,
         limit_consecutive_chars: bool = False,
-        max_consecutive_char: int = 2
+        max_consecutive_char: int = 2,
     ) -> str:
         """Preprocess text.
 
@@ -58,8 +59,18 @@ class TextPreprocessing:
         text = re.sub(r"<.*?>", "", text) if clean_html else text
         text = unidecode(text) if apply_unidecode else text
         text = self.remove_stopwords(text) if remove_stopwords else text
-        text = self.limit_consecutive_chars(text, max_consecutive_char=max_consecutive_char) if limit_consecutive_chars else text
-        text = self.remove_short_tokens(text, minsize=min_tokens_size) if remove_short_tokens else text
+        text = (
+            self.limit_consecutive_chars(
+                text, max_consecutive_char=max_consecutive_char
+            )
+            if limit_consecutive_chars
+            else text
+        )
+        text = (
+            self.remove_short_tokens(text, minsize=min_tokens_size)
+            if remove_short_tokens
+            else text
+        )
         text = self.apply_stemming(text) if apply_stemming else text
         text = (
             self.apply_lemmitization(text, lemmatizer)
@@ -129,7 +140,7 @@ class TextPreprocessing:
             str: Text with only tokens with lenght greater than minsize.
         """
         return " ".join([token for token in text.split() if len(token) >= minsize])
-    
+
     def limit_consecutive_chars(self, text: str, max_consecutive_char: int = 2) -> str:
         """Limit the number of consecutive characters.
 
@@ -140,5 +151,5 @@ class TextPreprocessing:
         Returns:
             str: Text limited to two consecutive characters.
         """
-        pattern = re.compile(r'(.)\1{2,}')
+        pattern = re.compile(r"(.)\1{2,}")
         return pattern.sub(lambda m: m.group(1) * max_consecutive_char, text)
