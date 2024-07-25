@@ -12,7 +12,7 @@ from sklearn.svm import SVC
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.pipeline import Pipeline
 
-from src.feature_engineering import TextCleaner
+from src.cleaner import TextCleaner
 
 random_state = 42
 model_choices = ["SVC", "GradientBoostingClassifier", "LogisticRegression"]
@@ -120,7 +120,7 @@ class Experiment:
             optuna.study.Study
         """
         objective = partial(self.objective, X=X, y=y, vectorize=vectorize, prefix=prefix)
-        study = optuna.create_study(direction="maximize")
+        study = optuna.create_study(study_name=f"{prefix}_study", direction="maximize")
         study.optimize(objective, n_trials=n_trials)
         study.trials_dataframe().to_csv(f"../models/{prefix}_clf_exp_results.csv")
         return study
