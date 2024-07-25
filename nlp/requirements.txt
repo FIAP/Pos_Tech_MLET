@@ -9,8 +9,10 @@ gensim==4.3.2
 scipy==1.12
 jellyfish==1.0.4
 rapidfuzz==3.9.4
-transformers==4.42.3
+transformers==4.43.2
 datasets==2.20.0
 torch==2.3.1
+accelerate==0.33.0
 seqeval==1.2.2
 optuna==3.6.1
+plotly==5.23.0
