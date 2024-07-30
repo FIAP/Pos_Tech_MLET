@@ -4,10 +4,7 @@ from src.preprocessing import TextPreprocessing
 
 
 class TextCleaner(BaseEstimator, TransformerMixin, TextPreprocessing):
-    def __init__(
-        self,
-        **kwargs
-    ):
+    def __init__(self, **kwargs):
         """Initialize TextCleaner"""
         self.kwargs = kwargs
 
@@ -15,10 +12,4 @@ class TextCleaner(BaseEstimator, TransformerMixin, TextPreprocessing):
         return self
 
     def transform(self, X, y=None):
-        return X.apply(
-            lambda x:
-            self.preprocess_text(
-                text=x,
-                **self.kwargs
-            )
-        )
+        return X.apply(lambda x: self.preprocess_text(text=x, **self.kwargs))
