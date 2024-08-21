@@ -1,0 +1,5 @@
+flask
+torch
+torchvision
+Pillow
+prometheus_client
