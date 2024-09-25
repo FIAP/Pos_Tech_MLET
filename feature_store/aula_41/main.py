@@ -32,8 +32,7 @@ customer_source = FileSource(
 # Passo 3: Definição da entidade
 customer = Entity(name="customer_id", join_keys=["customer_id"])
 
-# Passo 4: Definição da Feature View com transformação
-from feast.transforms import OverWindow
+# Passo 4: Definição da Feature View
 
 customer_transactions_view = FeatureView(
     name="customer_transactions",

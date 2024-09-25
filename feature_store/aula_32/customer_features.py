@@ -1,8 +1,9 @@
 from datetime import timedelta
 
-from feast import Entity, Feature, FeatureView, Field
-from feast.types import Float32, Int64
-from feast.data_source import FileSource
+from feast import Entity, FeatureView, Field
+from feast.types import Float32, Int64, String
+from feast.infra.offline_stores.file_source import FileSource
+
 
 # Defina a fonte de dados
 customer_source = FileSource(
@@ -11,7 +12,7 @@ customer_source = FileSource(
 )
 
 # Defina a entidade
-customer = Entity(name="customer_id", join_keys=["customer_id"])
+Entity(name="customer_id", value_type=2, join_keys=["customer_id"])
 
 # Defina a Feature View
 customer_transactions_view = FeatureView(

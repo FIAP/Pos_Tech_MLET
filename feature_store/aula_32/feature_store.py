@@ -1,3 +1,4 @@
+from datetime import datetime
 from feast import FeatureStore
 
 # Carregue o Feature Store
