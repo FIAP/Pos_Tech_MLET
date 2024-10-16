@@ -1,5 +1,5 @@
 # Use uma imagem base do Python
-FROM python:3.8-slim AS base
+FROM python:3.11-slim AS base
 
 # Defina o diretório de trabalho dentro do container
 WORKDIR /productization
@@ -17,9 +17,3 @@ EXPOSE 8000
 
 # Comando para iniciar a API
 CMD ["python", "app.py"]
-
-FROM base AS development
-
-
-FROM base AS production
-

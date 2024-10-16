@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify
 from prometheus_client import start_http_server, Summary, Counter, Gauge, generate_latest
 from prometheus_client import CONTENT_TYPE_LATEST
 from PIL import Image
-from .business_rules.log_nn import process_request
+from business_rules.log_nn import process_request
 
 app = Flask(__name__)
 
@@ -21,6 +21,7 @@ def predict_route():
         return jsonify({'prediction': prediction}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 # Rota para expor métricas do Prometheus
 @app.route('/metrics', methods=['GET'])

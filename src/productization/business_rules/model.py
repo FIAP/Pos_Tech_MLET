@@ -3,24 +3,17 @@ import logging
 import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
+import torchvision.models as models
 
 
 logger = logging.getLogger()
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
-
-class SimpleModel(nn.Module):
-    def __init__(self):
-        super(SimpleModel, self).__init__()
-        self.fc = nn.Linear(64 * 64 * 3, 2)  # Exemplo de modelo simples
-
-    def forward(self, x):
-        return self.fc(x)
-
 # Função para carregar o modelo
 def load_model(model_path):
-    model = SimpleModel()
+    model = models.resnet18(pretrained=False)
+    model.fc = nn.Linear(model.fc.in_features, 2)
     model.load_state_dict(torch.load(model_path))
     model.eval()
     return model

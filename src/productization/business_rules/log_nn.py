@@ -1,7 +1,7 @@
 from prometheus_client import start_http_server, Summary, Counter, Gauge, generate_latest
 from prometheus_client import CONTENT_TYPE_LATEST
 
-from productization.model import load_model, predict
+from .model import load_model, predict
 
 model = load_model("saved_model/model_transfer_learning.pth")
 
