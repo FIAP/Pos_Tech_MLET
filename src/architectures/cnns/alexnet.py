@@ -141,5 +141,4 @@ def evaluate_model(model):
     print(f"Test Accuracy: {accuracy:.2f}%")
     mlflow.log_metric("test_accuracy", accuracy)
 
-# Run the training and evaluation
 train_model()

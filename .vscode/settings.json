@@ -1,0 +1,43 @@
+{
+    "git.confirmSync": true,
+    "git.enableSmartCommit": true,
+    "git.autofetch": true,
+    "debug.onTaskErrors": "debugAnyway",
+    "terminal.integrated.enableMultiLinePasteWarning": false,
+    "window.zoomLevel": -1,
+    "javascript.updateImportsOnFileMove.enabled": "always",
+    "C_Cpp.autocompleteAddParentheses": true,
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/**"
+    ],
+    "autoDocstring.includeExtendedSummary": false,
+    "autoDocstring.includeName": false,
+    "autoDocstring.startOnNewLine": true,
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.completeFunctionParens": true,
+    "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.fixAll": [],
+    "python.analysis.extraPaths": [],
+    "python.analysis.indexing": false,
+    "python.analysis.typeCheckingMode": "basic",
+    "python.defaultInterpreterPath": "${workspaceFolder}\\src\\backend\\.venv\\Scripts\\python",
+    "python.analysis.packageIndexDepths": [
+        {
+          "name": "promptflow",
+          "depth": 2
+        },
+        {
+          "name": "fastapi",
+          "depth": 2
+        },
+      ],
+    "python.analysis.inlayHints.functionReturnTypes": true,
+    "python.analysis.inlayHints.variableTypes": true,
+    "search.useIgnoreFiles": true,
+    "python.terminal.activateEnvironment": true,
+    "python.testing.pytestArgs": [
+      "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
+}
