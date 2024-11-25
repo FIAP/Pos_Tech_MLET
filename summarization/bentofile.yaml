@@ -1,0 +1,12 @@
+service: 'service:Summarization' # Entry service import path
+description: |
+    ## Summarization Model
+
+    Use this model to summarize texts.
+labels:
+  owner: renata-gotler
+  stage: demo
+python:
+  requirements_txt: './requirements/requirements.txt'
+docker:
+  python_version: "3.11"
