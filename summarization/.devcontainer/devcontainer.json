@@ -1,0 +1,34 @@
+{
+	"name": "summarization",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+	"features": {
+		"ghcr.io/devcontainers/features/conda:1": {
+			"version": "latest"
+		},
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {"version": "latest"},
+		"ghcr.io/devcontainers/features/azure-cli:1": {"version": "latest"},
+		"ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {"version": "latest"},
+		"ghcr.io/devcontainers/features/common-utils:2": {"version": "latest"}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.autopep8",
+				"ms-python.flake8",
+				"ms-python.isort",
+				"ms-python.vscode-pylance",
+				"ms-python.black-formatter",
+				"njpwerner.autodocstring",
+				"ms-python.pylint",
+				"ms-python.debugpy",
+				"ms-python.mypy-type-checker",
+				"vivaxy.vscode-conventional-commits"
+			]
+		}
+	},
+	"remoteUser": "root",
+	"postCreateCommand": "pip install -r requirements/dev-requirements.txt"
+}
