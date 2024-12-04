@@ -1,8 +1,10 @@
 """Module responsible for HuggingFaceModel methods"""
+
 from typing import List, Any
 import torch
 from transformers import pipeline
 from mlflow.pyfunc import PythonModel
+import mlflow
 
 
 class HuggingFaceModel(PythonModel):
@@ -11,7 +13,6 @@ class HuggingFaceModel(PythonModel):
         self,
         model_name: str = "sshleifer/distilbart-cnn-12-6",
         task: str = "summarization",
-        revision: str = "a4f8f3e",
     ):
         """Initialize HuggingFaceModel.
 
@@ -19,11 +20,8 @@ class HuggingFaceModel(PythonModel):
             model_name (str, optional): Model name from hugging face.
                 Defaults to "sshleifer/distilbart-cnn-12-6".
             task (str, optional): Task. Defaults to "summarization".
-            revision (str, optional): Revision from hugging face.
-                Defaults to "a4f8f3e".
         """
         self.model_name = model_name
-        self.revision = revision
         self.task = task
 
     def load_context(self, context):
@@ -32,11 +30,11 @@ class HuggingFaceModel(PythonModel):
         self.pipeline = pipeline(
             task=self.task,
             model=self.model_name,
-            revision=self.revision,
             device=device,
             truncation=True,
         )
 
+    @mlflow.trace
     def predict(self, context: Any, model_input: Any):
         """Summarize texts.
 
