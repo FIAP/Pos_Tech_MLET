@@ -1,12 +1,7 @@
 {
 	"name": "summarization",
-    "build": {
-        "dockerfile": "Dockerfile"
-    },
+	"image": "mcr.microsoft.com/devcontainers/python:3.11",
 	"features": {
-		"ghcr.io/devcontainers/features/conda:1": {
-			"version": "latest"
-		},
 		"ghcr.io/devcontainers/features/docker-in-docker:2": {"version": "latest"},
 		"ghcr.io/devcontainers/features/azure-cli:1": {"version": "latest"},
 		"ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {"version": "latest"},
@@ -25,10 +20,11 @@
 				"ms-python.pylint",
 				"ms-python.debugpy",
 				"ms-python.mypy-type-checker",
-				"vivaxy.vscode-conventional-commits"
+				"vivaxy.vscode-conventional-commits",
+				"ms-vscode.makefile-tools"
 			]
 		}
 	},
 	"remoteUser": "root",
-	"postCreateCommand": "pip install -r requirements/dev-requirements.txt"
+	"postCreateCommand": "pip install  -r requirements/dev-requirements.txt"
 }
