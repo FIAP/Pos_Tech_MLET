@@ -21,7 +21,8 @@
 				"ms-python.debugpy",
 				"ms-python.mypy-type-checker",
 				"vivaxy.vscode-conventional-commits",
-				"ms-vscode.makefile-tools"
+				"ms-vscode.makefile-tools",
+				"github.vscode-github-actions"
 			]
 		}
 	},
