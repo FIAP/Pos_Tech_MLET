@@ -1,13 +1,15 @@
 """Module responsible for Experiment methods."""
 
 from typing import Dict
-import mlflow
-from mlflow.models.model import ModelInfo
 
+import mlflow
+import pandas as pd
+from mlflow.models.model import ModelInfo
 
 
 class Experiment:
     """Experiment."""
+
     def __init__(self, model: object, title: str):
         """Initialize Experiment.
 
@@ -43,7 +45,9 @@ class Experiment:
                 code_paths=["src"],
                 **kwargs,
             )
-            mlflow.log_params({"model_name": self.model.model_name, "task": self.model.task})
+            mlflow.log_params(
+                {"model_name": self.model.model_name, "task": self.model.task}
+            )
         return model_info
 
     def evaluate(self, model_uri: str, test_df: pd.DataFrame) -> Dict[str, int]:
@@ -66,4 +70,3 @@ class Experiment:
                 extra_metrics=[mlflow.metrics.latency()],
             )
         return results.metrics
-

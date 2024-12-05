@@ -1,11 +1,11 @@
-
+import bentoml
 import mlflow
 import pandas as pd
-import bentoml
 
 
-class Register():
+class Register:
     """Register."""
+
     def __init__(self, title: str):
         """Initialize Register.
 
@@ -24,13 +24,10 @@ class Register():
             pd.DataFrame
         """
         filters = (
-            f"attributes.run_name = '{run_name}')" +
-            "and attributes.status = 'FINISHED'"
+            f"attributes.run_name = '{run_name}'" + "and attributes.status = 'FINISHED'"
         )
         return mlflow.search_runs(
-            experiment_names=[self.title],
-            filter_string=filters,
-            **kwargs
+            experiment_names=[self.title], filter_string=filters, **kwargs
         )
 
     def register_model(self, run_id: str):
@@ -39,10 +36,10 @@ class Register():
         Args:
             run_id (str): Run id.
         """
-        model_uri = f'runs:/{run_id}/model'
+        model_uri = f"runs:/{run_id}/model"
         mlflow.register_model(
             model_uri,
             name=self.title,
-            tags={"status": "demo", "owner": "renata-gotler"}
+            tags={"status": "demo", "owner": "renata-gotler"},
         )
         bentoml.mlflow.import_model(self.title, model_uri)

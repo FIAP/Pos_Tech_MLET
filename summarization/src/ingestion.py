@@ -5,7 +5,6 @@ from datasets import load_dataset
 
 
 class Dataset(ABC):
-
     @abstractmethod
     def load_pd_test_dataset(self, max_size: int = 20, **kwargs) -> pd.DataFrame:
         """Load test dataset.
@@ -20,7 +19,6 @@ class Dataset(ABC):
 
 
 class HuggingFaceDataset(Dataset):
-
     def load_pd_test_dataset(self, max_size: int = 20, **kwargs) -> pd.DataFrame:
         """Load test dataset.
 
@@ -31,9 +29,5 @@ class HuggingFaceDataset(Dataset):
             pd.DataFrame: Test dataset
         """
 
-        dataset = (
-            load_dataset(
-                **kwargs
-            ).select(range(max_size)).to_pandas()
-        )
+        dataset = load_dataset(**kwargs).select(range(max_size)).to_pandas()
         return dataset.rename(columns={"text": "inputs"})

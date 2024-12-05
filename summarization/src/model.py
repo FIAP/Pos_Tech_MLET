@@ -1,14 +1,16 @@
 """Module responsible for HuggingFaceModel methods"""
 
-from typing import List, Any
-import torch
-from transformers import pipeline
-from mlflow.pyfunc import PythonModel
+from typing import Any
+
 import mlflow
+import torch
+from mlflow.pyfunc import PythonModel
+from transformers import pipeline
 
 
 class HuggingFaceModel(PythonModel):
     """HuggingFaceModel."""
+
     def __init__(
         self,
         model_name: str = "sshleifer/distilbart-cnn-12-6",
