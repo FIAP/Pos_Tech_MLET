@@ -1,6 +1,5 @@
 import bentoml
 import mlflow
-import pandas as pd
 
 
 class Register:
@@ -13,22 +12,6 @@ class Register:
             title (str): Experiment title.
         """
         self.title = title
-
-    def search_finished_runs(self, run_name: str, **kwargs) -> pd.DataFrame:
-        """Search finished runs.
-
-        Args:
-            run_name (str): Run name.
-
-        Returns:
-            pd.DataFrame
-        """
-        filters = (
-            f"attributes.run_name = '{run_name}'" + "and attributes.status = 'FINISHED'"
-        )
-        return mlflow.search_runs(
-            experiment_names=[self.title], filter_string=filters, **kwargs
-        )
 
     def register_model(self, run_id: str):
         """Register model in mlflow and bentoml.

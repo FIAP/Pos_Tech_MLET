@@ -70,3 +70,20 @@ class Experiment:
                 extra_metrics=[mlflow.metrics.latency()],
             )
         return results.metrics
+
+    def search_finished_experiments(self, run_name: str, **kwargs) -> pd.DataFrame:
+        """Search finished experiments.
+
+        Args:
+            run_name (str): Run name.
+
+        Returns:
+            pd.DataFrame
+        """
+        filters = (
+            f"attributes.run_name = '{run_name}'" +
+            " and attributes.status = 'FINISHED'"
+        )
+        return mlflow.search_runs(
+            experiment_names=[self.title], filter_string=filters, **kwargs
+        )

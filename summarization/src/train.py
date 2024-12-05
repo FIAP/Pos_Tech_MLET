@@ -21,7 +21,7 @@ if __name__ == "__main__":
         results.append(metrics[key_metric])
     best_run_name = list(models)[results.index(min(results))]
     reg = Register(title=title)
-    run_id = reg.search_finished_runs(run_name=best_run_name, max_results=1)["run_id"][
+    run_id = exp.search_finished_experiments(run_name=best_run_name, max_results=1)["run_id"][
         0
     ]
     reg.register_model(run_id=run_id)
