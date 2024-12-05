@@ -81,8 +81,8 @@ class Experiment:
             pd.DataFrame
         """
         filters = (
-            f"attributes.run_name = '{run_name}'" +
-            " and attributes.status = 'FINISHED'"
+            f"attributes.run_name = '{run_name}'"
+            + " and attributes.status = 'FINISHED'"
         )
         return mlflow.search_runs(
             experiment_names=[self.title], filter_string=filters, **kwargs

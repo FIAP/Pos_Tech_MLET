@@ -27,23 +27,21 @@ class TestHuggingFaceDataset(unittest.TestCase):
         )
 
         # Assertions
-        mock_load_dataset.assert_called_once_with(dataset_name="mock_dataset", split="mock_split")
+        mock_load_dataset.assert_called_once_with(
+            dataset_name="mock_dataset", split="mock_split"
+        )
         mock_dataset.select.assert_called_once_with(range(3))
         pd.testing.assert_frame_equal(
-            result, pd.DataFrame(
-                {"inputs": ["Document 1", "Document 2", "Document 3"]}
-            )
+            result, pd.DataFrame({"inputs": ["Document 1", "Document 2", "Document 3"]})
         )
-
 
     def test_load_pd_test_dataset_missing_args(self):
         """Test the `load_pd_test_dataset` method with default arguments."""
         # should give error load_dataset() missing 1 required positional argument: 'path'
-        try: 
+        try:
             self.dataset.load_pd_test_dataset()
         except TypeError:
             assert True
-
 
     def test_abstract_class(self):
         """Test the abstract class enforcement."""
