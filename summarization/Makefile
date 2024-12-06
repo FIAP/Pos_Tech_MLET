@@ -5,6 +5,10 @@
 ## After that, select one of the commands below and run `make <command>`.
 ## ----------------------------------------------------------------------
 
+YAML_FILE = bentofile.yaml
+
+VERSION = $(shell python -c "import yaml; print(yaml.safe_load(open('$(YAML_FILE)'))['labels']['version'])")
+
 help:  ## Display this message.
 	@sed -ne '/@sed/!s/## //p' $(MAKEFILE_LIST)
 
@@ -43,11 +47,11 @@ serve: # Serve bento model
 list-models: # List models registered to bentoml
 	bentoml models list
 
-YAML_FILE = bentofile.yaml
-VERSION = $(shell python -c "import yaml; print(yaml.safe_load(open('$(YAML_FILE)'))['labels']['version'])")
-
 build: # Build bentoml
 	bentoml build --version $(VERSION)
 
 containerize: # Containerize builded bento
 	bentoml containerize summarization:latest
+
+load-test:
+	locust -H http://0.0.0.0:3000
