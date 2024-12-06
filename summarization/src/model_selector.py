@@ -19,7 +19,7 @@ if __name__ == "__main__":
         model_info = exp.track(run_name=run_name)
         metrics = exp.evaluate(model_info.model_uri, test_df=test_df)
         results.append(metrics[key_metric])
-    best_run_name = list(models)[results.index(min(results))]
+    best_run_name = list(models)[results.index(max(results))]
     reg = Register(title=title)
     run_id = exp.search_finished_experiments(run_name=best_run_name, max_results=1)[
         "run_id"
