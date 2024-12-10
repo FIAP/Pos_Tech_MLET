@@ -10,61 +10,34 @@ Veja o arquivo `.devcontainer/devcontainer.json` para mais informações sobre o
 
 ## MLFlow
 
-No terminal para abrir a UI do MLFlow local:
+No terminal, rode o comando abaixo para abrir a UI do MLFlow localmente.
 `mlflow ui`.
 
-## Treinamento e Avaliação do Modelo
+[Documentação MLFlow](https://mlflow.org/)
 
-```
-from src.model import HuggingFaceModel
-from src.experiment import Experiment
+## Experimentação e Registro do Melhor Model
 
-model = HuggingFaceModel()
-exp = Experiment(model=model)
-
-# Cria um experimento logando assinatura do modelo, modelo, dependências e o que você quiser adicionar. 
-model_info = exp.track(title="Summarization", run_name="default_hugging_face")
-
-# Avalia um modelo de sumarização logado usando o mlflow evaluate em um dataset padrão do hugging face.
-exp.evaluate(model_info.model_uri)
-```
-
-## Registro de modelo
-
-Quando estamos satisfeitos com a performance de um modelo, podemos registrá-lo para uso no MLFlow Registry, que fará controle de versionamento e de ambiente dos modelos.
-
-```
-import mlflow
-mlflow.register_model(model_info.model_uri, name="summarization", tags={"status": "demo", "owner": "renata-gotler"})
-```
-
-## Deploy usando Flask
-
-Container:
-```
-docker build --tag=summarization-fast:1.0.0 .
-docker run -p 1000:1000 -d summarization-fast:1.0.0
-```
+No terminal rode o comando:
+`make select-model`
 
 ## Deploy usando BentoML
 
-```
-import bentoml
-bento_model = bentoml.mlflow.import_model("summarization", model_info.model_uri)
-```
+No terminal:
+- Visualizar modelos registrados BentoML
+`make list-models`
+
+- Rodar modelo registrado localmente
+`make serve`
+
+- Gerar container
+`make build`
+`make containerize`
+
+[Documentação BentoML](https://www.bentoml.com/)
+
+## Teste de extresse no endpoint
 
 No terminal:
-- Visualizar modelos
-`bentoml models list`
+`make load-test`
 
-- Rodar container local
-`bentoml serve . --reload`
-
-- Container
-`bentoml build --version 1.0.0`
-`bentoml containerize summarization:latest`
-
-## Imagens
-
-Listar imagens:
-`docker image list`
+[Documentação locust](https://locust.io/)

@@ -14,6 +14,3 @@ docker:
 include:
   - "service.py"
   - "src/*"
-exclude:
-  - .*
-  - test/*
