@@ -4,6 +4,7 @@ from locust import task
 
 from service import EXAMPLE_INPUT
 
+
 class SummarizerTestUser(HttpUser):
     @task
     def summarize(self):
