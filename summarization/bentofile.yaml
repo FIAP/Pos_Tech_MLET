@@ -1,12 +1,12 @@
 service: 'service:Summarization'
+description: |
+  ## Summarization Model
+
+  Use this model to summarize texts.
 labels:
   owner: renata-gotler
   stage: demo
   version: 0.0.1
-  description: |
-    ## Summarization Model
-
-    Use this model to summarize texts.
 python:
   requirements_txt: './requirements/requirements.txt'
 docker:
