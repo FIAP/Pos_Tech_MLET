@@ -52,14 +52,14 @@ entity_df_online = pd.DataFrame({
 
 # Passo 6: Consulta das Features em Tempo Real
 # Obtenha as features online
-online_features = store.get_online_features(
-    features=feature_list,
-    entity_rows=entity_df_online.to_dict(orient="records"),
-).to_df()
+#online_features = store.get_online_features(
+#    features=feature_list,
+#    entity_rows=entity_df_online.to_dict(orient="records"),
+#).to_df()
 
 # Passo 7: Realização de Predições com o Modelo
 # Prepare os dados para predição
-X_online = online_features[["transaction_amount", "transaction_count"]]
+#X_online = online_features[["transaction_amount", "transaction_count"]]
 
 # Realize as predições
 predictions = model.predict(X_online)
