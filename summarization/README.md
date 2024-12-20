@@ -2,11 +2,19 @@
 
 Exemplo de implementação de um modelo de sumarização usando mlflow, bentoml e huggingface.
 
-#### Dev Container
+## Set Up
 
-Esse projeto usa dev container para desenvolvimento.
+- Você precisará ter instalado em sua máquina o [Docker](https://www.docker.com/) e o [Make](https://www.gnu.org/software/make/).
 
-Veja o arquivo `.devcontainer/devcontainer.json` para mais informações sobre o ambiente.
+### Ambiente
+
+- Criação de um ambiente virtual.
+```
+python -m venv fiap_mlflow_bentoml
+fiap_mlflow_bentoml\Scripts\Activate.ps1
+```
+- Instalação dos pacotes necessários
+```make install-dev```
 
 ## MLFlow
 
