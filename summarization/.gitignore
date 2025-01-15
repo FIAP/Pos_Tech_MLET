@@ -1,2 +1,3 @@
 mlruns/*
 *.pyenv*
+fiap_mlflow_bentoml/*
