@@ -54,4 +54,4 @@ containerize: # Containerize builded bento
 	bentoml containerize summarization:latest
 
 load-test:
-	locust -H http://0.0.0.0:3000
+	locust -H http://127.0.0.1:3000
