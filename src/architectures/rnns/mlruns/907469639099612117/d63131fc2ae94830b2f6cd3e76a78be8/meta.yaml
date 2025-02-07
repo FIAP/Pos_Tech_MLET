@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/ricar/Github/Pos_Tech_MLET/src/architectures/rnns/mlruns/907469639099612117/d63131fc2ae94830b2f6cd3e76a78be8/artifacts
+end_time: 1738886386652
+entry_point_name: ''
+experiment_id: '907469639099612117'
+lifecycle_stage: active
+run_id: d63131fc2ae94830b2f6cd3e76a78be8
+run_name: grandiose-kit-94
+run_uuid: d63131fc2ae94830b2f6cd3e76a78be8
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1738886386421
+status: 4
+tags: []
+user_id: rcataldi

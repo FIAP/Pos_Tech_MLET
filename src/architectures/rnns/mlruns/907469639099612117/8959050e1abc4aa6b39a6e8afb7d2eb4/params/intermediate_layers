@@ -1,0 +1,1 @@
+["<class 'torch.nn.modules.rnn.LSTM'>_1", "<class 'torch.nn.modules.activation.Sigmoid'>_1", "<class 'torch.nn.modules.linear.Linear'>_1", "<class 'torch.nn.modules.rnn.LSTM'>_2", "<class 'torch.nn.modules.activation.Softmax'>_1", "<class 'torch.nn.modules.linear.Linear'>_2", "<class 'torch.nn.modules.activation.Softmax'>_2"]

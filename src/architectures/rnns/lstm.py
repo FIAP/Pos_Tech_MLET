@@ -20,14 +20,15 @@ learning_rate = 0.001
 sequence_length = 20  # Length of the input sequences
 num_samples = 10000  # Number of artificial samples to generate
 
+
 # Generate artificial data
 def generate_artificial_data(num_samples, sequence_length, input_size):
     # Generate random sequences of data
     X = torch.randn(num_samples, sequence_length, input_size)
-    
+
     # Generate random labels (regression target)
     y = torch.randn(num_samples, 1)
-    
+
     return X, y
 
 # Create artificial training and testing datasets
@@ -40,35 +41,50 @@ test_dataset = TensorDataset(test_X, test_y)
 train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
+
+def get_inner_layrs(input_size, hidden_size, num_layers, output_size):
+    return {
+        str(nn.LSTM) + "_1": nn.LSTM(input_size, hidden_size, num_layers, batch_first=True),
+        str(nn.Sigmoid) + "_1": nn.Sigmoid(),
+        str(nn.Linear) + "_1": nn.Linear(hidden_size, output_size),
+        str(nn.LSTM) + "_2": nn.LSTM(input_size, hidden_size, num_layers, batch_first=True),
+        str(nn.Softmax) + "_1": nn.Softmax(dim=1),
+        str(nn.Linear) + "_2": nn.Linear(hidden_size, output_size),
+        str(nn.Softmax) + "_2": nn.Softmax(dim=1)
+    }
+
 # LSTM model
 class LSTM(nn.Module):
-    def __init__(
-            self,
-            input_size,
-            hidden_size,
-            num_layers,
-            output_size
-        ):
+    def __init__(self, input_size, hidden_size, num_layers, output_size):
         super().__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.lstm1 = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc1 = nn.Linear(hidden_size, output_size)
-        self.sigmoid = nn.Sigmoid(output_size, input_size)
-        self.lstm2 = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc2 = nn.Linear(hidden_size, output_size)
+
+        # Define LSTM layers separately
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+
+        # Store only feedforward layers in nn.Sequential
+        self.model = nn.Sequential(
+            nn.Sigmoid(),
+            nn.Linear(hidden_size, output_size),
+            nn.Softmax(dim=1),
+            nn.Linear(output_size, input_size),
+            nn.Softmax(dim=-1)
+        )
 
     def forward(self, x):
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
-        
-        # Forward propagate LSTM
-        out, _ = self.lstm1(x, (h0, c0))
-        out = self.fc1(out[:, -1, :])
-        out = self.sigmoid(out[:, -1, :])
-        out, _ = self.lstm2(x, (h0, c0))
-        out = self.fc2(out[:, -1, :])
+        batch_size = x.size(0)
+
+        # Initialize hidden and cell states
+        h0_1 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(x.device)
+        c0_1 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(x.device)
+
+        # First LSTM layer
+        out, _ = self.lstm(x, (h0_1, c0_1))
+        out = self.model(out[:, -1, :])
+
         return out
+
 
 # Training the model
 def train_model():
@@ -79,11 +95,7 @@ def train_model():
     mlflow.set_experiment("LSTM Artificial Data Regression")
     with mlflow.start_run():
         # Log model parameters
-        mlflow.log_param("intermediate_networks", [
-            model.lstm1.__name__,
-            model.fc1.__name__,
-            model.sigmoid.__name__
-        ])
+        mlflow.log_param("intermediate_layers", [*get_inner_layrs(input_size, hidden_size, num_layers, output_size).keys()])
         mlflow.log_param("input_size", input_size)
         mlflow.log_param("hidden_size", hidden_size)
         mlflow.log_param("num_layers", num_layers)
@@ -95,7 +107,7 @@ def train_model():
         for epoch in range(num_epochs):
             model.train()
             running_loss = 0.0
-            
+
             for i, (sequences, labels) in enumerate(train_loader):
                 sequences, labels = sequences.to(device), labels.to(device)
 

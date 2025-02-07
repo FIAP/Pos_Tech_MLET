@@ -37,7 +37,14 @@ class Generator(nn.Module):
         self.model = nn.Sequential(
             nn.Linear(g_input_size + label_size, g_hidden_size),
             nn.ReLU(),
-            nn.Linear(g_hidden_size, g_output_size)
+            nn.Linear(g_hidden_size, g_output_size),
+            nn.Sigmoid(),
+            nn.Linear(g_input_size + label_size, g_hidden_size),
+            nn.Tanh(),
+            nn.Linear(g_input_size + label_size, g_hidden_size),
+            nn.LeakyReLU(),
+            nn.LSTM(g_input_size + label_size, g_hidden_size),
+            nn.Tanh()
         )
     
     def forward(self, x, labels):
@@ -71,8 +78,8 @@ def train():
     G = Generator()
     D = Discriminator()
     criterion = nn.BCELoss()
-    d_optimizer = Adam(D.parameters())
-    g_optimizer = Adam(G.parameters())
+    d_optimizer = Adam(D.parameters(), lr=0.0002)
+    g_optimizer = Adam(G.parameters(), lr=0.0002)
 
     # Start MLflow experiment
     mlflow.set_experiment("CGAN Training")

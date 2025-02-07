@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/ricar/Github/Pos_Tech_MLET/src/architectures/rnns/mlruns/907469639099612117/a6f2bb90cbcf414bb1ef507561bc037f/artifacts
+end_time: 1738880060120
+entry_point_name: ''
+experiment_id: '907469639099612117'
+lifecycle_stage: active
+run_id: a6f2bb90cbcf414bb1ef507561bc037f
+run_name: unleashed-kit-591
+run_uuid: a6f2bb90cbcf414bb1ef507561bc037f
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1738880060074
+status: 4
+tags: []
+user_id: rcataldi
