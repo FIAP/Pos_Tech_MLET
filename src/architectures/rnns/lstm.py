@@ -60,10 +60,8 @@ class LSTM(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
 
-        # Define LSTM layers separately
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
 
-        # Store only feedforward layers in nn.Sequential
         self.model = nn.Sequential(
             nn.Sigmoid(),
             nn.Linear(hidden_size, output_size),
