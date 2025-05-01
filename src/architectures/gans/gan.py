@@ -16,6 +16,7 @@ g_hidden_size = 100   # Generator complexity
 g_output_size = 50   # Size of generated output vector
 d_input_size = 50   # Minibatch size
 d_hidden_size = 50   # Discriminator complexity
+d_hidden_2_size = 50 # Discriminator complexity
 d_output_size = 1    # Single dimension for 'real' vs. 'fake' classification
 minibatch_size = d_input_size
 
@@ -43,7 +44,9 @@ class Discriminator(nn.Module):
         self.model = nn.Sequential(
             nn.Linear(d_input_size, d_hidden_size),
             nn.ReLU(),
-            nn.Linear(d_hidden_size, d_output_size),
+            nn.Linear(d_hidden_size, d_hidden_2_size),
+            nn.ReLU(),
+            nn.Linear(d_hidden_2_size, d_output_size),
             nn.Sigmoid()
         )
     

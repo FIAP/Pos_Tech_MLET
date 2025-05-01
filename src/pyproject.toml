@@ -19,6 +19,8 @@ datasets = "^3.2.0"
 scikit-learn = "^1.6.1"
 torchvision = "^0.21.0"
 mlflow = "^2.20.1"
+lightning = {extras = ["quantization"], version = "^2.5.1.post0"}
+jupyterlab = "^4.3.5"
 
 
 [build-system]
