@@ -1,0 +1,9 @@
+{
+    "builds": [
+      { "src": "api_modelo.py", "use": "@vercel/python" }
+    ],
+    "routes": [
+      { "src": "/(.*)", "dest": "api_modelo.py" }
+    ]
+  }
+  
