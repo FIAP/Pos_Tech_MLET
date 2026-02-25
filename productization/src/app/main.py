@@ -1,5 +1,19 @@
 """
-Modulo para previsão de preços de ações
+main.py
+
+Entry point for the LSTM Service FastAPI application.
+
+This module boots the API, registers middleware, error handlers</s>
+and all endpoint routes for training, inference, and monitoring of
+LSTM-based stock price prediction models.
+
+Key responsibilities:
+    - Health / readiness / startup probes (``GET /``, ``/ready``, ``/startup``).
+    - Asynchronous model training via ``POST /train`` (runs in a
+      ``ProcessPoolExecutor``).
+    - Real-time inference via ``POST /infer`` with optional quality
+      monitoring side-car.
+    - Model quality evaluation via ``POST /evaluate_quality``.
 """
 
 import os
@@ -102,10 +116,30 @@ _QUALITY_MONITOR_STATE: dict[str, deque[float]] = {
 
 
 def _get_model_artifact_dir() -> Path:
+    """Return the directory where trained model artifacts (``.pt`` files) are stored.
+
+    Returns:
+        Path: Absolute path to the ``.models`` directory inside the ``train`` package.
+    """
     return Path(train.__file__).resolve().parent / ".models"
 
 
 def _resolve_model_artifact_path(strategy_name: str | None = None) -> Path:
+    """Resolve the path to a trained model artifact.
+
+    When *strategy_name* is provided the corresponding ``.pt`` file is
+    returned.  Otherwise the most recently modified artifact is selected.
+
+    Args:
+        strategy_name (str | None): Optional strategy identifier.
+
+    Returns:
+        Path: Path to the ``.pt`` model file.
+
+    Raises:
+        HTTPException: 404 if no artifact is found; 409 if training is
+            still in progress.
+    """
     model_dir = _get_model_artifact_dir()
 
     if strategy_name:
@@ -138,6 +172,22 @@ def _resolve_model_artifact_path(strategy_name: str | None = None) -> Path:
 def _load_inference_model(
     model_path: Path,
 ) -> tuple[torch.nn.Module, dict[str, Any], dict[str, Any]]:
+    """Load (or retrieve from cache) a trained LSTM model for inference.
+
+    Uses a module-level cache keyed on file path and modification time to
+    avoid redundant ``torch.load`` calls.
+
+    Args:
+        model_path (Path): Path to the ``.pt`` artifact.
+
+    Returns:
+        tuple[torch.nn.Module, dict, dict]: A triple of
+            (model in ``eval`` mode, LSTM parameter dict, training parameter dict).
+
+    Raises:
+        HTTPException: 500 if the artifact format is unsupported or metadata
+            is missing.
+    """
     model_mtime = model_path.stat().st_mtime
     cached_path = _MODEL_CACHE.get("path")
     cached_mtime = _MODEL_CACHE.get("mtime")
@@ -209,7 +259,11 @@ def _load_inference_model(
 
 
 def _cleanup_future(future: Future) -> None:
-    """Remove finished training jobs from the active set."""
+    """Callback to remove a training ``Future`` from the active set when it completes.
+
+    Args:
+        future (Future): The finished future to discard.
+    """
     _ACTIVE_TRAINING_JOBS.discard(future)
 
 
@@ -295,46 +349,61 @@ async def response_exception_handler(
 
 @app.get("/", tags=["Configuração"], summary="Health Check Endpoint")
 async def health_check() -> dict[str, str]:
-    """
-    health_check Health check endpoint to verify if the service is running.
+    """Return a simple ``{"status": "healthy"}`` payload.
+
+    Used by container orchestrators (Docker / Kubernetes) as a
+    **liveness probe** to verify the service is running.
 
     Returns:
-        dict[str, str]: A simple dictionary indicating the service is healthy.
+        dict[str, str]: ``{"status": "healthy"}``.
     """
     return {"status": "healthy"}
 
 
 @app.get("/ready", tags=["Configuração"], summary="Readiness Check Endpoint")
 async def readiness_check() -> dict[str, str]:
-    """
-    readiness_check Readiness check endpoint to verify if the service is ready to
-    accept requests.
+    """Return a simple ``{"status": "ready"}`` payload.
+
+    Used as a **readiness probe** to confirm the service can accept requests.
 
     Returns:
-        dict[str, str]: A simple dictionary indicating the service is ready.
+        dict[str, str]: ``{"status": "ready"}``.
     """
     return {"status": "ready"}
 
 
 @app.get("/startup", tags=["Configuração"], summary="Startup Check Endpoint")
 async def startup_check() -> dict[str, str]:
-    """
-    startup_check Startup check endpoint to verify if the service has started
-    successfully.
+    """Return a simple ``{"status": "started"}`` payload.
+
+    Used as a **startup probe** to confirm the application has initialised.
 
     Returns:
-        dict[str, str]: A simple dictionary indicating the service has started.
+        dict[str, str]: ``{"status": "started"}``.
     """
     return {"status": "started"}
 
 
 @app.post("/train", tags=["Treinamento"], summary="Train a new LSTM model")
 async def train_model(strategy: str, params: train.TrainingParams) -> dict[str, str]:
-    """
-    train_model Endpoint to initiate the training of a new LSTM model.
+    """Schedule an asynchronous training job for a new LSTM model.
+
+    The training is dispatched to a ``ProcessPoolExecutor`` so the API
+    remains responsive. Once the job finishes, the model artifact is
+    persisted in ``train/.models/<strategy>.pt``.
+
+    Args:
+        strategy (str): Name of the ``TrainingStrategy`` class to use
+            (e.g. ``"RangeMultipleStrategy"``).
+        params (TrainingParams): Hyperparameters and configuration for
+            the training run (tickers, period, seq_len, etc.).
 
     Returns:
-        dict[str, str]: Information about the scheduled training job.
+        dict[str, str]: Confirmation message with paths to the MLflow
+            tracking directory and the expected model artifact.
+
+    Raises:
+        HTTPException: 400 if the strategy name is unknown.
     """
 
     if not hasattr(train, strategy):
@@ -368,11 +437,26 @@ async def train_model(strategy: str, params: train.TrainingParams) -> dict[str, 
 
 @app.post("/infer", tags=["Inferencia"], summary="Make a prediction using the LSTM model")
 async def infer_model(data: InferRequest) -> dict[str, Any]:
-    """
-    infer_model Endpoint to make a prediction using the trained LSTM model.
+    """Perform a real-time prediction with an optional quality monitoring side-car.
+
+    The endpoint loads the trained LSTM artifact (cached for performance),
+    validates the input sequence shape, and returns the prediction.
+
+    When *y_true* **and** *y_pred_old* are also supplied, the response
+    includes running quality metrics (mean error comparison +
+    Kolmogorov–Smirnov test).
+
+    Args:
+        data (InferRequest): Request body containing the input sequence
+            and optional quality fields.
 
     Returns:
-        dict[str, Any]: Prediction result and optional quality monitoring metrics.
+        dict[str, Any]: ``{"prediction": float}`` plus an optional
+            ``"quality_monitoring"`` sub-document.
+
+    Raises:
+        HTTPException: 400 for invalid input; 404/409 if no model is
+            available.
     """
     strategy_name = data.strategy
 
@@ -452,12 +536,22 @@ async def infer_model(data: InferRequest) -> dict[str, Any]:
 
 @app.post("/evaluate_quality", tags=["Monitoramento"], summary="Evaluate the quality of the new model")
 async def evaluate_quality_endpoint(data: dict[str, Any]) -> dict[str, Any]:
-    """
-    evaluate_quality_endpoint Endpoint to evaluate the quality of the new model
-    predictions against the old model predictions using the provided true values.
+    """Run a full quality evaluation of accumulated new-model predictions.
+
+    Compares the recent predictions stored in the in-memory quality
+    monitor against user-supplied ground-truth and baseline predictions.
+
+    Args:
+        data (dict[str, Any]): JSON body with keys ``y_true`` (list[float])
+            and ``y_pred_old`` (list[float]).
 
     Returns:
-        dict[str, Any]: A dictionary containing the evaluation results and quality gate status.
+        dict[str, Any]: ``{"quality_monitoring": {...}}`` containing
+            mean errors, KS statistics, and a boolean quality gate.
+
+    Raises:
+        HTTPException: 400 if required fields are missing or no new
+            predictions exist.
     """
     y_true = data.get("y_true")
     y_pred_old = data.get("y_pred_old")

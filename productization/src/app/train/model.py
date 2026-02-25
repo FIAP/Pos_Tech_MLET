@@ -1,6 +1,24 @@
 """
-This module contains classes and methods for training LSTM models using PyTorch Lightning.
-It includes various training strategies, data pipelines, and model factories.
+model.py
+
+Defines the training orchestration layer for LSTM-based stock price
+prediction.
+
+Key components:
+    - **TrainingParams**: Dataclass holding every hyperparameter for a
+      training run.
+    - **LSTMLightningModule**: PyTorch Lightning wrapper around an LSTM
+      model, implementing ``training_step``, ``validation_step`` and
+      ``configure_optimizers``.
+    - **TrainingStrategy** (abstract): Declares the contract for a
+      pluggable training strategy (data pipeline + model factory +
+      training params).
+    - **Concrete strategies**: ``NoProcessingSimpleStrategy``,
+      ``NoProcessingSingleStrategy``, ``NoProcessingMultipleStrategy``,
+      ``RangeSingleStrategy``, ``RangeMultipleStrategy``,
+      ``RangeClusterMultipleStrategy``, ``RangeClusterComplexStrategy``.
+    - **TrainerContext**: Executes a chosen strategy end-to-end and
+      persists the resulting model artifact to disk.
 """
 
 from typing import override
@@ -18,14 +36,21 @@ from pathlib import Path
 
 @dataclass
 class TrainingParams:
-    tickers: list[str]
-    period: str
-    seq_len: int
-    num_epochs: int
-    learning_rate: float
-    batch_size: int
-    layer_config: dict
-    lstm_params: dict
+    """Immutable container for every parameter required by a training run.
+
+    Attributes:
+        tickers (list[str]): Stock ticker symbols (e.g. ``["AAPL", "MSFT"]``).
+        period (str): Historical data window understood by *yfinance*
+            (e.g. ``"1y"``, ``"6mo"``).
+        seq_len (int): Number of time steps in each input sequence.
+        num_epochs (int): Number of complete passes over the training data.
+        learning_rate (float): Optimiser step size.
+        batch_size (int): Mini-batch size for ``DataLoader``.
+        layer_config (dict): Maps layer keys to layer type names
+            (e.g. ``{"lstm1": "LSTM", "linear1": "Linear"}``).
+        lstm_params (dict): Raw LSTM hyper-parameters dict compatible with
+            ``LSTMParams.model_validate``.
+    """
 
 
 class LSTMLightningModule(pl.LightningModule):
@@ -577,11 +602,18 @@ class RangeClusterMultipleStrategy(TrainingStrategy):
         return self.params
 
 class TrainerContext:
-    """
-    Context for executing training based on a specified strategy.
+    """Orchestrator that executes a ``TrainingStrategy`` from data loading to
+    model persistence.
+
+    Workflow:
+        1. Retrieve training parameters from the strategy.
+        2. Build the data pipeline and produce DataLoaders.
+        3. Instantiate the LSTM model via the strategy's factory.
+        4. Train with PyTorch Lightning (logs to MLflow).
+        5. Save the artifact (state dict + metadata) as ``.pt`` file.
 
     Attributes:
-        strategy: The training strategy to use.
+        strategy (TrainingStrategy): The strategy to execute.
     """
 
     def __init__(self, strategy: TrainingStrategy):
@@ -594,11 +626,19 @@ class TrainerContext:
         self.strategy = strategy
 
     def train(self) -> Path:
-        """
-        Execute the training process using the specified strategy.
+        """Execute the full training pipeline and persist the model artifact.
+
+        Steps:
+            1. Load and process data through the strategy's ``DataPipeline``.
+            2. Build the LSTM model via the strategy's ``LSTMFactory``.
+            3. Fit with ``pytorch_lightning.Trainer`` (MLflow logging is
+               enabled automatically).
+            4. Save the model state dict, layer config, LSTM params,
+               strategy name and training params to
+               ``train/.models/<strategy_name>.pt``.
 
         Returns:
-            Path: Path to the saved model.
+            Path: Absolute path to the saved ``.pt`` file.
         """
         p = self.strategy.get_training_params()
         pipeline = self.strategy.get_data_pipeline()

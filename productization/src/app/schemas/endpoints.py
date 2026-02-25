@@ -1,9 +1,29 @@
+"""endpoints.py
+
+Pydantic request schemas for the LSTM Service API.
+
+Each class in this module represents the JSON body of a specific endpoint,
+providing automatic validation, serialisation, and OpenAPI documentation.
+"""
+
 from typing import Optional
 from pydantic import BaseModel, Field
 
 
 class InferRequest(BaseModel):
-    """Request payload for real-time inference."""
+    """Request payload for real-time inference via ``POST /infer``.
+
+    Attributes:
+        strategy: Optional strategy/model name to select a specific trained
+            artifact.  When omitted the most recently trained model is used.
+        sequence: Input sequence with shape ``[seq_len, input_size]``.
+        y_true: Observed target value for online quality monitoring.
+        y_pred_old: Prediction from the baseline model for quality comparison.
+
+    Note:
+        ``y_true`` and ``y_pred_old`` must be supplied **together** to activate
+        the quality monitoring pipeline.  Providing only one raises HTTP 400.
+    """
 
     strategy: Optional[str] = Field(
         default=None,
