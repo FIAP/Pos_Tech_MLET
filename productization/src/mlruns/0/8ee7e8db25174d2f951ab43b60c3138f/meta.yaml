@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/ricar/Github/Pos_Tech_MLET/productization/src/mlruns/0/8ee7e8db25174d2f951ab43b60c3138f/artifacts
+end_time: 1771974568843
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 8ee7e8db25174d2f951ab43b60c3138f
+run_name: rare-hare-215
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1771974560333
+status: 3
+tags: []
+user_id: rcataldi

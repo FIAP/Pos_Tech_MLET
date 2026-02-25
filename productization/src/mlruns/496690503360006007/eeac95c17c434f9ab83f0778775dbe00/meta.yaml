@@ -1,0 +1,14 @@
+artifact_uri: file:C:/Users/ricar/Github/Pos_Tech_MLET/productization/src/mlruns/496690503360006007/eeac95c17c434f9ab83f0778775dbe00/artifacts
+end_time: 1771974569554
+entry_point_name: ''
+experiment_id: '496690503360006007'
+lifecycle_stage: active
+run_id: eeac95c17c434f9ab83f0778775dbe00
+run_name: NoProcessingSingle
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1771974569033
+status: 3
+tags: []
+user_id: rcataldi

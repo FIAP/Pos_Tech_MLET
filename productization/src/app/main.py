@@ -3,17 +3,24 @@ Modulo para previsão de preços de ações
 """
 
 import os
+from typing import Any
 from pathlib import Path
+from threading import Lock
+from collections import deque
 from concurrent.futures import ProcessPoolExecutor, Future
 
-from fastapi import FastAPI, HTTPException, Request, Depends, status
+import torch
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app import __app__, __author__, __version__, logger
-from app.schemas import RESPONSES, ErrorMessage
+from app.schemas import RESPONSES, ErrorMessage, InferRequest
+from app.model.lstm import LSTMFactory
+from app.model.lstm_params import LSTMParams
+from app.inference import evaluate_quality, MIN_SAMPLE_SIZE
 
 from app import train
 
@@ -84,6 +91,121 @@ app.add_middleware(
 
 TRAINING_EXECUTOR: ProcessPoolExecutor = ProcessPoolExecutor()
 _ACTIVE_TRAINING_JOBS: set[Future] = set()
+_MODEL_CACHE: dict[str, Any] = {}
+_LAST_TRAINING_CONFIG_BY_STRATEGY: dict[str, dict[str, Any]] = {}
+_QUALITY_MONITOR_LOCK = Lock()
+_QUALITY_MONITOR_STATE: dict[str, deque[float]] = {
+    "y_true": deque(maxlen=5000),
+    "y_pred_new": deque(maxlen=5000),
+    "y_pred_old": deque(maxlen=5000),
+}
+
+
+def _get_model_artifact_dir() -> Path:
+    return Path(train.__file__).resolve().parent / ".models"
+
+
+def _resolve_model_artifact_path(strategy_name: str | None = None) -> Path:
+    model_dir = _get_model_artifact_dir()
+
+    if strategy_name:
+        model_path = model_dir / f"{strategy_name}.pt"
+        if not model_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=(
+                    f"Model artifact for strategy '{strategy_name}' not found. "
+                    "Train the model first using /train."
+                ),
+            )
+        return model_path
+
+    model_paths = list(model_dir.glob("*.pt")) if model_dir.exists() else []
+    if not model_paths:
+        if _ACTIVE_TRAINING_JOBS:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="No trained model is available yet. A training job is still running.",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No trained model found. Execute /train before calling /infer.",
+        )
+
+    return max(model_paths, key=lambda candidate: candidate.stat().st_mtime)
+
+
+def _load_inference_model(
+    model_path: Path,
+) -> tuple[torch.nn.Module, dict[str, Any], dict[str, Any]]:
+    model_mtime = model_path.stat().st_mtime
+    cached_path = _MODEL_CACHE.get("path")
+    cached_mtime = _MODEL_CACHE.get("mtime")
+    cached_model = _MODEL_CACHE.get("model")
+    cached_lstm_params = _MODEL_CACHE.get("lstm_params")
+    cached_training_params = _MODEL_CACHE.get("training_params")
+
+    if (
+        cached_model is not None
+        and cached_path == str(model_path)
+        and cached_mtime == model_mtime
+        and isinstance(cached_lstm_params, dict)
+        and isinstance(cached_training_params, dict)
+    ):
+        return cached_model, cached_lstm_params, cached_training_params
+
+    raw_artifact = torch.load(model_path, map_location="cpu")
+    strategy_name = model_path.stem
+
+    state_dict: dict[str, Any]
+    layer_config: dict[str, Any]
+    lstm_params_raw: dict[str, Any]
+    training_params: dict[str, Any]
+
+    if isinstance(raw_artifact, dict) and "state_dict" in raw_artifact:
+        state_dict = raw_artifact["state_dict"]
+        layer_config = raw_artifact.get("layer_config", {})
+        lstm_params_raw = raw_artifact.get("lstm_params", {})
+        training_params = raw_artifact.get("training_params", {})
+    elif isinstance(raw_artifact, dict):
+        state_dict = raw_artifact
+        fallback_config = _LAST_TRAINING_CONFIG_BY_STRATEGY.get(strategy_name, {})
+        layer_config = fallback_config.get("layer_config", {})
+        lstm_params_raw = fallback_config.get("lstm_params", {})
+        training_params = fallback_config.get("training_params", {})
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Unsupported model artifact format at '{model_path}'.",
+        )
+
+    if not layer_config or not lstm_params_raw:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=(
+                "Model metadata not found in artifact. Retrain the model with the current "
+                "version and try again."
+            ),
+        )
+
+    lstm_params = LSTMParams.model_validate(lstm_params_raw)
+    factory = LSTMFactory(layer_config, lstm_params)
+    model = factory.create()
+    model.load_state_dict(state_dict)
+    model.eval()
+
+    lstm_params_dict = lstm_params.model_dump()
+    _MODEL_CACHE.update(
+        {
+            "path": str(model_path),
+            "mtime": model_mtime,
+            "model": model,
+            "lstm_params": lstm_params_dict,
+            "training_params": training_params,
+        }
+    )
+
+    return model, lstm_params_dict, training_params
 
 
 def _cleanup_future(future: Future) -> None:
@@ -222,6 +344,11 @@ async def train_model(strategy: str, params: train.TrainingParams) -> dict[str, 
         )
 
     strategy_instance = getattr(train, strategy)(params)
+    _LAST_TRAINING_CONFIG_BY_STRATEGY[strategy_instance.name] = {
+        "layer_config": strategy_instance.layer_config,
+        "lstm_params": strategy_instance.lstm_params,
+        "training_params": strategy_instance.get_training_params(),
+    }
     context = train.TrainerContext(strategy_instance)
 
     future: Future = TRAINING_EXECUTOR.submit(context.train)
@@ -240,13 +367,115 @@ async def train_model(strategy: str, params: train.TrainingParams) -> dict[str, 
 
 
 @app.post("/infer", tags=["Inferencia"], summary="Make a prediction using the LSTM model")
-async def infer_model(data: dict) -> dict[str, float]:
+async def infer_model(data: InferRequest) -> dict[str, Any]:
     """
     infer_model Endpoint to make a prediction using the trained LSTM model.
 
     Returns:
-        dict[str, float]: A dictionary containing the prediction result.
+        dict[str, Any]: Prediction result and optional quality monitoring metrics.
     """
-    # Placeholder for inference logic
-    prediction_result = 0.0  # Replace with actual prediction logic
-    return {"prediction": prediction_result}
+    strategy_name = data.strategy
+
+    model_path = _resolve_model_artifact_path(strategy_name)
+    model, lstm_params, training_params = _load_inference_model(model_path)
+
+    raw_sequence = data.sequence
+
+    try:
+        input_tensor = torch.tensor(raw_sequence, dtype=torch.float32)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Field 'sequence' must contain only numeric values.",
+        ) from exc
+
+    if input_tensor.ndim != 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Field 'sequence' must be a 2D list with shape [seq_len, input_size].",
+        )
+
+    expected_input_size = int(lstm_params.get("input_size", 0))
+    if input_tensor.shape[1] != expected_input_size:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Invalid input_size: received {input_tensor.shape[1]}, "
+                f"expected {expected_input_size}."
+            ),
+        )
+
+    expected_seq_len = training_params.get("seq_len")
+    if isinstance(expected_seq_len, int) and input_tensor.shape[0] != expected_seq_len:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Invalid seq_len: received {input_tensor.shape[0]}, "
+                f"expected {expected_seq_len}."
+            ),
+        )
+
+    model_input = input_tensor.unsqueeze(0)
+    with torch.inference_mode():
+        output = model(model_input)
+
+    prediction_result = float(output.reshape(-1)[0].item())
+
+    if (data.y_true is None) != (data.y_pred_old is None):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Fields 'y_true' and 'y_pred_old' must be provided together "
+                "to run quality monitoring."
+            ),
+        )
+
+    response: dict[str, Any] = {"prediction": prediction_result}
+
+    if data.y_true is not None and data.y_pred_old is not None:
+        with _QUALITY_MONITOR_LOCK:
+            _QUALITY_MONITOR_STATE["y_true"].append(float(data.y_true))
+            _QUALITY_MONITOR_STATE["y_pred_old"].append(float(data.y_pred_old))
+            _QUALITY_MONITOR_STATE["y_pred_new"].append(prediction_result)
+
+            quality_metrics = evaluate_quality(
+                y_true=list(_QUALITY_MONITOR_STATE["y_true"]),
+                y_pred_new=list(_QUALITY_MONITOR_STATE["y_pred_new"]),
+                y_pred_old=list(_QUALITY_MONITOR_STATE["y_pred_old"]),
+                min_sample_size=MIN_SAMPLE_SIZE,
+            )
+
+        response["quality_monitoring"] = quality_metrics
+
+    return response
+
+
+@app.post("/evaluate_quality", tags=["Monitoramento"], summary="Evaluate the quality of the new model")
+async def evaluate_quality_endpoint(data: dict[str, Any]) -> dict[str, Any]:
+    """
+    evaluate_quality_endpoint Endpoint to evaluate the quality of the new model
+    predictions against the old model predictions using the provided true values.
+
+    Returns:
+        dict[str, Any]: A dictionary containing the evaluation results and quality gate status.
+    """
+    y_true = data.get("y_true")
+    y_pred_old = data.get("y_pred_old")
+
+    if y_true is None or y_pred_old is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Fields 'y_true' and 'y_pred_old' must be provided together for quality evaluation.",
+        )
+
+    y_pred_new = list(_QUALITY_MONITOR_STATE["y_pred_new"])
+
+    if not y_pred_new:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No new predictions available for quality evaluation. Make inference calls to generate predictions before evaluating quality.",
+        )
+
+    evaluation_results = evaluate_quality(y_true, y_pred_new, y_pred_old)
+
+    return {"quality_monitoring": evaluation_results}

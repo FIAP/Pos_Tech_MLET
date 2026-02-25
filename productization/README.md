@@ -93,13 +93,23 @@ sequenceDiagram
 	participant Model as LSTM
 	participant Store as .models
 
-	Client->>API: POST /infer {payload}
-	API->>Store: carregar pesos (planejado)
+	Client->>API: POST /infer {sequence, strategy?}
+	API->>Store: carregar artefato mais recente (ou por strategy)
 	API->>Model: forward(data)
-	Model-->>Client: prediction (placeholder 0.0)
+	Model-->>Client: prediction (float)
 ```
 
 ### Como usar
 1. Defina `TrainingParams` no corpo do POST e escolha a estratégia via query string (`/train?strategy=RangeMultipleStrategy`).
 2. Consulte o diretório `src/app/train/mlruns` para métricas e `src/app/train/.models` para pesos salvos após o término.
-3. O endpoint `/infer` ainda é um stub — conecte a carga de pesos e pré-processamento para servir previsões reais.
+3. O endpoint `/infer` realiza inferência em tempo real carregando o artefato salvo em `src/app/train/.models` e validando formato de entrada (`sequence`).
+
+## CI/CD com GitHub Actions
+- Workflow: `.github/workflows/productization-ci-cd.yml`.
+- **CI** (push/PR em `main` e `deep-learning` quando houver alteração em `productization/**`):
+	- Instala dependências com extras de lint e teste.
+	- Executa `black --check`, `isort --check-only`, `pylint` e `pytest`.
+- **CD** (somente em `main` ou `workflow_dispatch`):
+	- Builda a imagem Docker usando `productization/Dockerfile`.
+	- Publica no GitHub Container Registry: `ghcr.io/<owner>/<repo>`.
+	- Tags geradas: `latest` (branch padrão), `sha-<commit>` e nome da branch.

@@ -331,6 +331,7 @@ def predict(model, input_tensor: torch.Tensor) -> float:
 - A arquitetura do modelo é reconstruída identicamente via `LSTMFactory`, garantindo que `load_state_dict` funcione corretamente.
 - O endereço `map_location="cpu"` permite que o modelo seja carregado em servidores sem GPU, separando o ambiente de treinamento (GPU) do ambiente de inferência (CPU).
 - O endpoint `POST /infer` em `main.py` é o ponto de integração: recebe os dados, pré-processa, chama `predict()` e retorna a predição.
+- Opcionalmente, envie `y_true` e `y_pred_old` no payload para ativar monitoramento online de qualidade com os mesmos critérios dos testes: erro médio absoluto e KS-2 amostras (`alternative="greater"`).
 
 ---
 
@@ -344,7 +345,7 @@ O `app/main.py` é o ponto de entrada do serviço. A API é organizada em grupos
 | Configuração | `GET /ready` | Readiness check |
 | Configuração | `GET /startup` | Startup check |
 | Treinamento | `POST /train?strategy=<nome>` | Dispara treinamento assíncrono |
-| Inferência | `POST /infer` | Realiza predição com o modelo salvo |
+| Inferência | `POST /infer` | Realiza predição e, opcionalmente, monitora qualidade (`y_true` + `y_pred_old`) |
 
 O treinamento é executado de forma **assíncrona** via `ProcessPoolExecutor`, evitando que uma chamada de treinamento bloqueie outras requisições:
 

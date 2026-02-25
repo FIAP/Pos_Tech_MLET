@@ -620,5 +620,14 @@ class TrainerContext:
         model_dir = Path(__file__).parent / '.models'
         model_dir.mkdir(exist_ok=True)
         model_path = model_dir / f"{self.strategy.name}.pt"
-        torch.save(model.state_dict(), model_path)
+        torch.save(
+            {
+                "state_dict": model.state_dict(),
+                "layer_config": self.strategy.layer_config,
+                "lstm_params": self.strategy.lstm_params,
+                "strategy": self.strategy.name,
+                "training_params": p,
+            },
+            model_path,
+        )
         return model_path

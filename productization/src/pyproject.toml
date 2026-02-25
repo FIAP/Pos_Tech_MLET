@@ -23,6 +23,7 @@ dependencies = [
     "mlflow-skinny",
     "numpy",
     "pandas",
+    "scipy",
 ]
 
 [project.optional-dependencies]
